@@ -1,0 +1,53 @@
+#!/bin/bash
+
+ROOT_DIR=$(pwd)
+
+
+old=$1
+new=$2
+echo $old $new
+echo "$3"
+
+LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib"
+
+find_changed_requirements() {
+    local __result_var=$1
+    local array=$2
+    local pattern=$3
+    local array2=( $( for i in ${array[@]} ; do echo $i ; done | grep $pattern ) )
+    eval $__result_var="'$array2'"
+}
+
+modified_deps() {
+    local __ret=$1
+    local sign=$2
+    local modified_deps=$(git diff --unified=0 --ignore-all-space --ignore-blank-lines --ignore-cr-at-eol --no-color $old $new etc/requirements.txt | grep "^$sign" | grep -v "^+++" | grep -v "^---")
+    eval $__ret="'$modified_deps'"
+}
+
+modified_deps deleted "-"
+modified_deps added "+"
+
+IFS=$'\n' read -rd '' -a deleted <<<"$deleted"
+IFS=$'\n' read -rd '' -a added <<<"$added"
+
+source .venv/bin/activate
+
+for dep in "${deleted[@]}"; do
+    if [ ! -z "$dep" ]; then 
+	if [[ $dep == *"#egg="* ]]; then
+	    dep2=${dep#*egg=}
+	else
+	    dep2=${dep:1}
+	fi
+	pip uninstall -y "$dep2"
+    fi
+done
+
+for dep in "${added[@]}"; do
+    if [ ! -z "$dep" ]; then
+	pip install "${dep:1}"
+    fi
+done
+
+deactivate
