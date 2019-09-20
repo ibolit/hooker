@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+from subprocess import check_output
+
+commit_msg_filepath = sys.argv[1]
+
+issue_re = '([A-Z]+-\d+)'
+
+
+def main():
+    with open(commit_msg_filepath) as infile:
+        raw_commit_msg = infile.readlines()
+        
+    if not is_fresh_commit(raw_commit_msg):
+        return 
+
+    issue_number = get_issue_number()
+
+    with open(commit_msg_filepath, 'w') as outfile:
+        outfile.write(prepare_commit_msg(issue_number, raw_commit_msg))
+        
+
+
+def prepare_commit_msg(issue_number, raw_commit_msg):
+    return f'''{issue_number} 
+
+# ----- 80 symbols line lenght limit at the pipe symbol-----------------------> |
+#
+{''.join(raw_commit_msg)}
+'''
+
+        
+
+def is_fresh_commit(raw_commit_msg):
+    """If all non-blank lines start with a #, then it is a fresh commit 
+    (as opposed to rebases)"""
+    
+    lines = filter(None, map(str.strip, raw_commit_msg))
+    lines = filter(lambda s: not s.startswith('#'), lines)
+    lines_list = list(lines)
+    return len(lines_list) == 0
+    
+
+
+def get_issue_number():
+    branch = check_output(
+        ['git', 'symbolic-ref', '--short', 'HEAD']).decode().strip()
+    regex = f'((feature|bugfix|hotfix|release)\/)?{issue_re}'
+    match_result = re.match(regex, branch)
+    if match_result:
+        issue = match_result.group(3)
+        return issue
+    return 'no_task'
+
+
+
+if __name__ == '__main__':
+    main()
