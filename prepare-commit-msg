@@ -24,7 +24,7 @@ def main():
 
 
 def prepare_commit_msg(issue_number, raw_commit_msg):
-    return f'''{issue_number} 
+    return f'''{issue_number}: 
 
 # ----- 80 symbols line lenght limit at the pipe symbol-----------------------> |
 #
@@ -46,7 +46,7 @@ def is_fresh_commit(raw_commit_msg):
 
 def get_issue_number():
     branch = check_output(
-        ['git', 'rev-parse' '--abbrev-ref', 'HEAD']).decode().strip()
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode().strip()
     regex = f'((feature|bugfix|hotfix|release)\/)?{issue_re}'
     match_result = re.match(regex, branch)
     if match_result:
